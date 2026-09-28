@@ -72,7 +72,7 @@ variable unset nothing changes.
 
 | Variable | Default | Description |
 |---|---|---|
-| `MEDIA_S3_HOST` | *(unset)* | Bucket hostname, e.g. `my-bucket.s3.eu-south-1.amazonaws.com`. A bare hostname, not a URL. Setting it enables the proxy. |
+| `MEDIA_S3_HOST` | *(unset)* | Bucket hostname, e.g. `ai-earth.s3.eu-west-1.amazonaws.com`. A bare hostname, not a URL. Setting it enables the proxy. |
 | `MEDIA_PATH` | `/media` | Path prefix this host serves the bucket under. |
 | `MEDIA_CACHE_PATH` | `/data/media-cache` | Local cache directory. Keep it below the volume mount root. |
 | `MEDIA_CACHE_MAX_SIZE` | `2g` | Cache size ceiling. |
