@@ -69,6 +69,44 @@ path while the `*.up.railway.app` domain works perfectly, which looks like a DNS
 certificate problem and is neither. Check the port beside the domain in
 Settings → Networking before investigating anything else.
 
+## Application proxy — everything else to your app
+
+Rendered by
+[`docker-entrypoint.d/42-app-proxy.sh`](docker-entrypoint.d/42-app-proxy.sh),
+which runs last and rewrites the fallback location rather than adding one.
+Setting `APP_UPSTREAM` turns it on; unset, nothing changes and the container
+keeps serving static files.
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_UPSTREAM` | *(unset)* | Where to send everything not matched earlier, e.g. `http://laravel.railway.internal:8080`. Enables the proxy. |
+| `APP_READ_TIMEOUT` | `60s` | Upstream read timeout. |
+
+### Why not PROXY_ROUTES
+
+`PROXY_ROUTES` cannot express this one. An entry of `/=upstream` renders
+`location ^~ /` beside the `location /` the server block already has, and nginx
+refuses to start with *duplicate location*. This script rewrites the existing
+fallback instead, so only one of them exists.
+
+### What it changes
+
+`location /` becomes `location ^~ /` and its `try_files` is replaced by a
+`proxy_pass`. The `^~` is the part that matters: it makes the prefix win
+outright over regex locations, so the static-asset block stops intercepting
+requests for files this container does not have and the application serves its
+own assets. Longer prefixes still win, so `/media/` keeps going to S3, and the
+exact-match `/healthz` stays local for Railway's health probe.
+
+`X-Forwarded-Proto` is passed through. Without it an application behind
+Railway's TLS termination generates `http://` links, and a browser refuses to
+register a service worker over them.
+
+If the rendered server block is not the shape the script expects — because
+`40-railway-nginx.sh` changed upstream — it says so and leaves the file alone
+rather than producing something half-rewritten. If the result fails `nginx -t`
+it reverts and keeps the static site serving.
+
 ## Media proxy — an S3 bucket served same-origin
 
 Rendered by

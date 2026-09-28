@@ -10,13 +10,16 @@ RUN apk add --no-cache apache2-utils ca-certificates curl tar unzip \
 
 COPY docker-entrypoint.d/40-railway-nginx.sh /docker-entrypoint.d/40-railway-nginx.sh
 COPY docker-entrypoint.d/41-media-proxy.sh /docker-entrypoint.d/41-media-proxy.sh
+COPY docker-entrypoint.d/42-app-proxy.sh /docker-entrypoint.d/42-app-proxy.sh
 COPY www /opt/default-site
 
 # Syntax-check the boot scripts and assert every tool they shell out to exists,
 # so a typo fails the build in seconds instead of crash-looping a container.
-RUN chmod 0755 /docker-entrypoint.d/40-railway-nginx.sh /docker-entrypoint.d/41-media-proxy.sh \
+RUN chmod 0755 /docker-entrypoint.d/40-railway-nginx.sh /docker-entrypoint.d/41-media-proxy.sh /docker-entrypoint.d/42-app-proxy.sh \
     && sh -n /docker-entrypoint.d/40-railway-nginx.sh \
     && sh -n /docker-entrypoint.d/41-media-proxy.sh \
+    && sh -n /docker-entrypoint.d/42-app-proxy.sh \
+    && command -v awk \
     && command -v htpasswd \
     && command -v envsubst \
     && command -v curl \
