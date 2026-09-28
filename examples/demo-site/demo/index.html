@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Notes — Serving a static site from a Railway volume</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell">
+
+  <nav>
+    <span class="brand">Field&nbsp;Notes</span>
+    <span class="spacer"></span>
+    <a href="index.html" class="on">Notes</a>
+    <a href="about.html">About</a>
+  </nav>
+
+  <h1>Serving a static site from a Railway volume</h1>
+  <p class="dek">Notes from moving a hand-built site off a laptop and onto a persistent disk.</p>
+
+  <p>
+    These files were uploaded straight onto the volume mounted at <code class="i">/data</code>. Nothing
+    was rebuilt, no image was pushed, and no pipeline ran — the web server picked them up on the next
+    request. That is the whole appeal of a plain file server: the deploy step is a copy.
+  </p>
+
+  <div class="grid">
+    <div class="tile"><b>Served from</b><span>/data/www/demo</span></div>
+    <div class="tile"><b>Files in this note</b><span>3</span></div>
+    <div class="tile"><b>Transfer encoding</b><span>gzip</span></div>
+    <div class="tile"><b>Asset cache</b><span>30 days</span></div>
+  </div>
+
+  <h2>What the volume buys you</h2>
+  <p>
+    A container filesystem is thrown away on every deploy. A volume is not, so the content and the
+    code that serves it stop being the same artifact. You can redeploy the web server to pick up a
+    security release without touching a single page, and you can change a page without waiting on a build.
+  </p>
+  <ul>
+    <li>Content survives redeploys, restarts and image upgrades.</li>
+    <li>The stylesheet beside this page is fingerprinted by its <code class="i">ETag</code>, and comes back with a 30-day expiry.</li>
+    <li>Text responses are compressed on the way out; a pre-compressed <code class="i">.gz</code> sibling is used when one exists.</li>
+  </ul>
+
+  <h2>Getting files onto it</h2>
+  <figure>
+<pre>railway volume files --volume $VOLUME_ID upload \
+  ./demo/index.html /data/www/demo/index.html</pre>
+    <figcaption>One file at a time over SFTP, or mount the volume and rsync a whole tree.</figcaption>
+  </figure>
+
+  <h2>The part that is easy to get wrong</h2>
+  <p>
+    Every volume arrives with a <code class="i">lost+found</code> directory at its mount root, so the
+    site root has to sit one level below it. Point a web server straight at the mount and the first
+    directory listing you serve is a filesystem artefact.
+  </p>
+
+  <footer>
+    A demonstration page. Replace it with your own — the server has no opinion about what it serves.
+  </footer>
+
+</div>
+</body>
+</html>

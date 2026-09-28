@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gateway checks — Field Notes</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  table.checks { width: 100%; border-collapse: collapse; font: 400 14.5px/1.5 system-ui, -apple-system, sans-serif; margin: 0 0 26px; }
+  table.checks th { text-align: left; font: 600 11.5px/1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); padding: 0 12px 10px 0; border-bottom: 1px solid var(--rule); }
+  table.checks td { padding: 13px 12px 13px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.checks tr:last-child td { border-bottom: none; }
+  .what { font-weight: 600; }
+  .what small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .path { font: 500 13px/1.5 ui-monospace, Menlo, monospace; color: #6b665e; }
+  .pill { display: inline-block; min-width: 46px; text-align: center; padding: 3px 9px; border-radius: 999px; font: 700 12.5px/1.4 ui-monospace, Menlo, monospace; }
+  .ok   { background: #e3f0e4; color: #276b31; }
+  .warn { background: #fdeede; color: #9a5716; }
+  .bad  { background: #fbe4e0; color: #a1321c; }
+  .note { font: 500 12.5px/1.5 ui-monospace, Menlo, monospace; color: var(--muted); }
+  .ms { font: 500 13px/1.5 ui-monospace, Menlo, monospace; color: var(--muted); white-space: nowrap; }
+  .rerun { font: 600 13px/1 system-ui, sans-serif; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav>
+    <span class="brand">Field&nbsp;Notes</span>
+    <span class="spacer"></span>
+    <a href="index.html">Notes</a>
+    <a href="about.html">About</a>
+    <a href="gateway.html" class="on">Gateway</a>
+  </nav>
+
+  <h1>What this origin is actually doing</h1>
+  <p class="dek">Live same-origin checks, run in your browser against this deployment.</p>
+
+  <p>
+    Every row below is a real request to this host. Static files come off the volume, the proxy rows
+    go out to a backend and come back through the cache, and the health route is the one Railway
+    probes. Rows marked <em>not configured</em> are features this deployment has left switched off.
+  </p>
+
+  <table class="checks">
+    <thead>
+      <tr><th>Check</th><th>Status</th><th>Time</th><th>Evidence</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <button class="rerun" onclick="runAll()">Run the checks again</button>
+
+  <footer>
+    Served by NGINX from a Railway volume. Nothing here needs a build step.
+  </footer>
+
+</div>
+
+<script>
+const CHECKS = [
+  { name: 'Health route',        hint: 'the path Railway probes, outside any auth', path: '/healthz',
+    evidence: r => 'body: ' + r.body.trim().slice(0, 12) },
+  { name: 'Static page',         hint: 'this site, read off the volume',            path: '/demo/index.html',
+    evidence: r => 'ETag ' + (r.headers.etag || '—') },
+  { name: 'Compressed asset',    hint: 'stylesheet with a long cache lifetime',     path: '/demo/style.css',
+    evidence: r => r.headers['cache-control'] || 'no cache header' },
+  { name: 'Private upstream',    hint: 'proxied over the private network',          path: '/internal-demo/healthz',
+    evidence: r => r.status === 404 ? 'not configured' : 'reached the upstream' },
+  { name: 'Public upstream',     hint: 'proxied and cached on the volume',          path: '/upstream-demo/',
+    evidence: r => r.status === 404 ? 'not configured' : 'X-Cache-Status: ' + (r.headers['x-cache-status'] || '—') },
+  { name: 'Unknown path',        hint: 'should be a real 404, not a blank page',    path: '/definitely-not-here',
+    evidence: r => r.status === 404 ? 'served the 404 page' : 'status ' + r.status },
+  { name: 'Security headers',    hint: 'set on every response',                     path: '/',
+    evidence: r => [r.headers['x-content-type-options'] && 'nosniff',
+                    r.headers['strict-transport-security'] && 'HSTS',
+                    r.headers['x-frame-options'] && 'frame-options']
+                   .filter(Boolean).join(' · ') || 'none' },
+];
+
+function cls(name, status) {
+  if (status === 0) return 'bad';
+  if (status < 400) return 'ok';
+  if (status === 404 && (name === 'Unknown path')) return 'ok';
+  if (status === 404) return 'warn';
+  return 'bad';
+}
+
+async function runOne(c) {
+  const t0 = performance.now();
+  try {
+    const res = await fetch(c.path, { cache: 'no-store' });
+    const body = res.headers.get('content-type')?.startsWith('text/plain') ? await res.text() : '';
+    const headers = {};
+    res.headers.forEach((v, k) => headers[k] = v);
+    return { status: res.status, ms: Math.round(performance.now() - t0), headers, body };
+  } catch (e) {
+    return { status: 0, ms: Math.round(performance.now() - t0), headers: {}, body: '' };
+  }
+}
+
+async function runAll() {
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = CHECKS.map(c =>
+    `<tr><td class="what">${c.name}<small>${c.hint}</small><span class="path">${c.path}</span></td>
+         <td><span class="pill warn">···</span></td><td class="ms">—</td><td class="note">running</td></tr>`).join('');
+  for (let i = 0; i < CHECKS.length; i++) {
+    const c = CHECKS[i];
+    const r = await runOne(c);
+    const tr = tbody.children[i];
+    tr.children[1].innerHTML = `<span class="pill ${cls(c.name, r.status)}">${r.status || 'ERR'}</span>`;
+    tr.children[2].textContent = r.ms + ' ms';
+    tr.children[3].textContent = r.status === 0 ? 'request failed' : c.evidence(r);
+  }
+}
+runAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About — Field Notes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell">
+
+  <nav>
+    <span class="brand">Field&nbsp;Notes</span>
+    <span class="spacer"></span>
+    <a href="index.html">Notes</a>
+    <a href="about.html" class="on">About</a>
+  </nav>
+
+  <h1>About these notes</h1>
+  <p class="dek">Three files, one directory, no build step.</p>
+
+  <p>
+    This second page exists to prove an ordinary thing: links between pages work, the shared
+    stylesheet is fetched once and cached, and the server resolves <code class="i">about.html</code>
+    without any routing configuration. A static site does not need more than that.
+  </p>
+
+  <h2>Deep links</h2>
+  <p>
+    Requests that match no file return a real 404 by default. For a single-page app, turning on
+    <code class="i">SPA_MODE</code> makes unknown paths fall back to <code class="i">index.html</code>
+    so the client-side router can handle them instead.
+  </p>
+
+  <h2>Where to go next</h2>
+  <ul>
+    <li>Put the API on the same origin with a reverse-proxy route.</li>
+    <li>Turn on caching so proxied responses are served from the volume.</li>
+    <li>Add basic auth while the site is still a draft.</li>
+  </ul>
+
+  <footer>
+    <a href="index.html" style="color:#b4491f;text-decoration:none">&larr; Back to the notes</a>
+  </footer>
+
+</div>
+</body>
+</html>

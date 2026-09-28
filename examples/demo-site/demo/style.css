@@ -1,0 +1,41 @@
+:root {
+  --bg: #fbfaf7;
+  --ink: #1c1b19;
+  --muted: #6b665e;
+  --rule: #e4e0d8;
+  --accent: #b4491f;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 17px/1.7 var(--serif);
+  -webkit-font-smoothing: antialiased;
+}
+.shell { max-width: 720px; margin: 0 auto; padding: 56px 28px 96px; }
+nav { display: flex; gap: 26px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 18px; }
+nav .brand { font-weight: 700; letter-spacing: -.01em; font-size: 19px; }
+nav a { color: var(--muted); text-decoration: none; font: 500 14px/1 system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; }
+nav a:hover, nav a.on { color: var(--accent); }
+nav .spacer { flex: 1; }
+h1 { font-size: 38px; line-height: 1.2; letter-spacing: -.02em; margin: 44px 0 6px; }
+.dek { color: var(--muted); font-style: italic; margin: 0 0 34px; }
+h2 { font-size: 22px; margin: 38px 0 10px; letter-spacing: -.01em; }
+p { margin: 0 0 18px; }
+ul { margin: 0 0 18px; padding-left: 22px; }
+li { margin-bottom: 7px; }
+pre {
+  background: #14130f; color: #e9e4d8; border-radius: 10px;
+  padding: 16px 18px; overflow-x: auto;
+  font: 13.5px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin: 0 0 20px;
+}
+code.i { font: 500 15px/1 ui-monospace, Menlo, monospace; background: #efece4; padding: 2px 6px; border-radius: 4px; }
+figure { margin: 0 0 26px; }
+figcaption { font: 400 13.5px/1.6 system-ui, sans-serif; color: var(--muted); margin-top: 8px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0 0 26px; }
+.tile { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; background: #fff; }
+.tile b { display: block; font: 600 13px/1 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+.tile span { font: 600 21px/1.2 var(--serif); }
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--rule); color: var(--muted); font: 400 14px/1.6 system-ui, sans-serif; }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 30px; } }

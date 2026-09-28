@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NGINX on Railway</title>
+<style>
+  :root {
+    --bg: #0b0f0d;
+    --panel: #121815;
+    --panel-2: #172119;
+    --line: #24322a;
+    --text: #e8f0ea;
+    --muted: #93a89a;
+    --green: #009639;
+    --green-lt: #35c46a;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(0,150,57,.18), transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, rgba(53,196,106,.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 64px 24px 80px; }
+
+  header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .mark {
+    width: 56px; height: 56px; flex: none;
+    display: grid; place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(160deg, var(--green), #00702b);
+    box-shadow: 0 10px 30px rgba(0,150,57,.35);
+  }
+  .mark svg { width: 30px; height: 30px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0; letter-spacing: -.02em; }
+  h1 small { display: block; font-size: 15px; font-weight: 400; color: var(--muted); letter-spacing: 0; margin-top: 4px; }
+
+  .pill {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border-radius: 999px;
+    background: rgba(0,150,57,.14); border: 1px solid rgba(53,196,106,.35);
+    color: var(--green-lt); font: 600 13px/1 var(--mono);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-lt); box-shadow: 0 0 0 4px rgba(53,196,106,.18); }
+
+  .lede { margin: 28px 0 0; color: var(--muted); max-width: 68ch; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 36px; }
+  .card {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: 14px; padding: 20px 20px 18px;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: .01em; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .card code, code.v { font: 500 13px/1.5 var(--mono); color: var(--green-lt); background: rgba(0,150,57,.10); padding: 1px 6px; border-radius: 5px; }
+
+  section.block { margin-top: 44px; }
+  section.block h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  pre {
+    margin: 0; padding: 18px 20px; overflow-x: auto;
+    background: #0d1310; border: 1px solid var(--line); border-radius: 12px;
+    font: 13.5px/1.75 var(--mono); color: #cfe0d4;
+  }
+  pre .c { color: #6f8377; }
+  pre .k { color: var(--green-lt); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; }
+  td:first-child { white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  .tablewrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+
+  footer { margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  footer a { color: var(--green-lt); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .sep { opacity: .4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M9 16V8l6 8V8"/>
+      </svg>
+    </div>
+    <h1>NGINX on Railway
+      <small>Static hosting, reverse proxy and edge caching &mdash; configured entirely by environment variables.</small>
+    </h1>
+    <span class="pill"><span class="dot"></span>200 OK</span>
+  </header>
+
+  <p class="lede">
+    This page is the shipped placeholder. It was copied onto the volume at
+    <code class="v">/data/www</code> the first time this service booted, and it is only
+    seeded while that directory is empty &mdash; upload your own files and they are served instead.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Serve your own site</h2>
+      <p>Upload files to the volume at <code>/data/www</code>, or point <code>SITE_SOURCE_URL</code>
+        at a <code>.tar.gz</code> and it is unpacked on boot. Set <code>SPA_MODE=true</code> for a
+        single-page app so unknown paths fall back to <code>index.html</code>.</p>
+    </div>
+    <div class="card">
+      <h2>Reverse proxy</h2>
+      <p>Route paths to other Railway services with <code>PROXY_ROUTES</code>. An upstream ending in
+        <code>/</code> strips the matched prefix. Upstreams are re-resolved as they change, so
+        redeploying a backend never strands a stale address.</p>
+    </div>
+    <div class="card">
+      <h2>Real client IP</h2>
+      <p>Railway's edge appends a rotating address to <code>X-Forwarded-For</code>. This config reads the
+        leftmost entry, so logs, rate limits and forwarded headers all carry the true client.</p>
+    </div>
+    <div class="card">
+      <h2>Compression</h2>
+      <p><code>gzip</code> is on for text, JSON, SVG and fonts, and <code>gzip_static</code> serves a
+        pre-compressed <code>.gz</code> sibling whenever one is uploaded beside the original.</p>
+    </div>
+    <div class="card">
+      <h2>Edge cache</h2>
+      <p>Set <code>CACHE_ENABLED=true</code> to cache proxied responses on the volume. Every response
+        then carries an <code>X-Cache-Status</code> header.</p>
+    </div>
+    <div class="card">
+      <h2>Locked down by default</h2>
+      <p>Server tokens off, dotfiles denied, HSTS and the usual security headers on every response, and
+        optional HTTP basic auth over the whole site.</p>
+    </div>
+  </div>
+
+  <section class="block">
+    <h3>Put NGINX in front of your other services</h3>
+    <pre><span class="c"># One public domain, several private Railway services behind it.</span>
+<span class="k">PROXY_ROUTES</span>=/api=http://api.railway.internal:3000,/auth=http://auth.railway.internal:9000
+
+<span class="c"># Everything not matched by a route is served from the static site root.</span>
+<span class="k">SPA_MODE</span>=true
+<span class="k">CACHE_ENABLED</span>=true</pre>
+  </section>
+
+  <section class="block">
+    <h3>Settings</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Variable</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>SITE_ROOT</code></td><td><code>/data/www</code></td><td>Directory served as the site root.</td></tr>
+          <tr><td><code>SITE_SOURCE_URL</code></td><td><em>unset</em></td><td>Archive unpacked over the site root at boot, once per URL.</td></tr>
+          <tr><td><code>SPA_MODE</code></td><td><code>false</code></td><td>Fall back to <code>index.html</code> for unknown paths.</td></tr>
+          <tr><td><code>PROXY_ROUTES</code></td><td><em>unset</em></td><td>Comma-separated <code>/path=upstream</code> reverse-proxy routes. A trailing <code>/</code> on the upstream strips the prefix.</td></tr>
+          <tr><td><code>CACHE_ENABLED</code></td><td><code>false</code></td><td>Cache proxied responses on the volume.</td></tr>
+          <tr><td><code>BASIC_AUTH_USER</code></td><td><em>unset</em></td><td>Enables HTTP basic auth when set with a password.</td></tr>
+          <tr><td><code>RATE_LIMIT_RPS</code></td><td><em>unset</em></td><td>Requests per second per client IP.</td></tr>
+          <tr><td><code>DIRECTORY_LISTING</code></td><td><code>false</code></td><td>Serve an index of directories with no index file.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>Health check</span><code class="v">/healthz</code>
+    <span class="sep">&middot;</span>
+    <span>Docs</span><a href="https://nginx.org/en/docs/">nginx.org</a>
+    <span class="sep">&middot;</span>
+    <span>Replace this page by uploading your own <code class="v">index.html</code>.</span>
+  </footer>
+
+</div>
+</body>
+</html>
