@@ -62,6 +62,13 @@ Every variable is optional and has a working default.
 `/healthz` always answers `200` anonymously, outside basic auth, so it works as the
 Railway health-check path on an otherwise locked-down deployment.
 
+**Every domain carries its own target port.** Railway sets it per domain, and a custom
+domain does not inherit it from the generated one — it can default to `443` while the
+container listens on `$PORT`. The symptom is a custom domain answering `502` on every
+path while the `*.up.railway.app` domain works perfectly, which looks like a DNS or
+certificate problem and is neither. Check the port beside the domain in
+Settings → Networking before investigating anything else.
+
 ## Media proxy — an S3 bucket served same-origin
 
 Rendered by
