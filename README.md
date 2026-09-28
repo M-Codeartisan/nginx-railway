@@ -106,6 +106,15 @@ locations, so the static-asset block cannot capture `/media/*.webp` first. A mis
 object comes back as `404` rather than the `403` S3 returns when the bucket denies
 `ListBucket`, so a client can tell absent from forbidden.
 
+**The cache survives redeploys.** `MEDIA_CACHE_PATH` defaults to `/data/media-cache`,
+which sits on the mounted volume, so a response cached once is served for
+`MEDIA_CACHE_VALID` — thirty days by default — regardless of how many times the
+service is redeployed. That is usually what you want, and it is a trap while setting
+things up: a wrong response cached before the bucket permissions were right outlives
+every redeploy. Empty the directory over the volume's file browser, or point
+`MEDIA_CACHE_PATH` somewhere outside `/data` if you would rather it start clean each
+boot.
+
 If the rendered block fails `nginx -t`, the script removes it and leaves the rest of
 the site serving rather than taking the container down.
 

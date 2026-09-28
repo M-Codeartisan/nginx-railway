@@ -91,8 +91,9 @@ cp "$HTTP_CONF" "$HTTP_BACKUP" 2>/dev/null || true
 # this file from scratch on every boot, so appending here is idempotent.
 cat >> "$HTTP_CONF" <<MEDIA_HTTP
 
-# Media proxy cache (41-media-proxy.sh). Deliberately ephemeral: it spares
-# repeat round trips to S3, it is not a durability mechanism.
+# Media proxy cache (41-media-proxy.sh). Spares repeat round trips to S3; it is
+# not a durability mechanism. Note it sits on the mounted volume by default, so
+# it survives redeploys — clear it by hand if a bad response gets cached.
 proxy_cache_path $MEDIA_CACHE_PATH levels=1:2 keys_zone=media_cache:10m max_size=$MEDIA_CACHE_MAX_SIZE inactive=30d use_temp_path=off;
 MEDIA_HTTP
 
