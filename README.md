@@ -62,6 +62,51 @@ Every variable is optional and has a working default.
 `/healthz` always answers `200` anonymously, outside basic auth, so it works as the
 Railway health-check path on an otherwise locked-down deployment.
 
+**Every domain carries its own target port.** Railway sets it per domain, and a custom
+domain does not inherit it from the generated one — it can default to `443` while the
+container listens on `$PORT`. The symptom is a custom domain answering `502` on every
+path while the `*.up.railway.app` domain works perfectly, which looks like a DNS or
+certificate problem and is neither. Check the port beside the domain in
+Settings → Networking before investigating anything else.
+
+## Application proxy — everything else to your app
+
+Rendered by
+[`docker-entrypoint.d/42-app-proxy.sh`](docker-entrypoint.d/42-app-proxy.sh),
+which runs last and rewrites the fallback location rather than adding one.
+Setting `APP_UPSTREAM` turns it on; unset, nothing changes and the container
+keeps serving static files.
+
+| Variable | Default | Description |
+|---|---|---|
+| `APP_UPSTREAM` | *(unset)* | Where to send everything not matched earlier, e.g. `http://laravel.railway.internal:8080`. Enables the proxy. |
+| `APP_READ_TIMEOUT` | `60s` | Upstream read timeout. |
+
+### Why not PROXY_ROUTES
+
+`PROXY_ROUTES` cannot express this one. An entry of `/=upstream` renders
+`location ^~ /` beside the `location /` the server block already has, and nginx
+refuses to start with *duplicate location*. This script rewrites the existing
+fallback instead, so only one of them exists.
+
+### What it changes
+
+`location /` becomes `location ^~ /` and its `try_files` is replaced by a
+`proxy_pass`. The `^~` is the part that matters: it makes the prefix win
+outright over regex locations, so the static-asset block stops intercepting
+requests for files this container does not have and the application serves its
+own assets. Longer prefixes still win, so `/media/` keeps going to S3, and the
+exact-match `/healthz` stays local for Railway's health probe.
+
+`X-Forwarded-Proto` is passed through. Without it an application behind
+Railway's TLS termination generates `http://` links, and a browser refuses to
+register a service worker over them.
+
+If the rendered server block is not the shape the script expects — because
+`40-railway-nginx.sh` changed upstream — it says so and leaves the file alone
+rather than producing something half-rewritten. If the result fails `nginx -t`
+it reverts and keeps the static site serving.
+
 ## Media proxy — an S3 bucket served same-origin
 
 Rendered by
@@ -105,6 +150,15 @@ which is same-site but **cross**-origin and reinstates every one of those proble
 locations, so the static-asset block cannot capture `/media/*.webp` first. A missing
 object comes back as `404` rather than the `403` S3 returns when the bucket denies
 `ListBucket`, so a client can tell absent from forbidden.
+
+**The cache survives redeploys.** `MEDIA_CACHE_PATH` defaults to `/data/media-cache`,
+which sits on the mounted volume, so a response cached once is served for
+`MEDIA_CACHE_VALID` — thirty days by default — regardless of how many times the
+service is redeployed. That is usually what you want, and it is a trap while setting
+things up: a wrong response cached before the bucket permissions were right outlives
+every redeploy. Empty the directory over the volume's file browser, or point
+`MEDIA_CACHE_PATH` somewhere outside `/data` if you would rather it start clean each
+boot.
 
 If the rendered block fails `nginx -t`, the script removes it and leaves the rest of
 the site serving rather than taking the container down.

@@ -16,7 +16,11 @@
 # Serving from this origin makes those responses `basic`: real status, real
 # size, no padding. For the same reason media must never move to a media.*
 # subdomain, which is same-site but cross-origin.
-set -eu
+# Deliberately NOT "set -e": the stock nginx entrypoint aborts the container if
+# any /docker-entrypoint.d script exits non-zero, so an error here would take the
+# whole site down rather than just disabling the media proxy. Every path below
+# ends in exit 0.
+set -u
 
 ME="[media-proxy]"
 log() { echo "$ME $*"; }
@@ -72,16 +76,24 @@ if [ -z "$RESOLVERS" ]; then
 fi
 [ -n "$RESOLVERS" ] || RESOLVERS="[fd12::10]"
 
-mkdir -p "$MEDIA_CACHE_PATH"
+if ! mkdir -p "$MEDIA_CACHE_PATH" 2>/dev/null; then
+  log "ERROR: cannot create cache directory $MEDIA_CACHE_PATH; disabling"
+  exit 0
+fi
 chown -R nginx:nginx "$MEDIA_CACHE_PATH" 2>/dev/null || true
+
+# Restored verbatim if the rendered configuration turns out to be invalid.
+HTTP_BACKUP="$(mktemp)" || { log "ERROR: cannot create a temporary file; disabling"; exit 0; }
+cp "$HTTP_CONF" "$HTTP_BACKUP" 2>/dev/null || true
 
 # ---------------------------------------------------------------- http context
 # proxy_cache_path is only valid at http level. 40-railway-nginx.sh rewrites
 # this file from scratch on every boot, so appending here is idempotent.
 cat >> "$HTTP_CONF" <<MEDIA_HTTP
 
-# Media proxy cache (41-media-proxy.sh). Deliberately ephemeral: it spares
-# repeat round trips to S3, it is not a durability mechanism.
+# Media proxy cache (41-media-proxy.sh). Spares repeat round trips to S3; it is
+# not a durability mechanism. Note it sits on the mounted volume by default, so
+# it survives redeploys — clear it by hand if a bad response gets cached.
 proxy_cache_path $MEDIA_CACHE_PATH levels=1:2 keys_zone=media_cache:10m max_size=$MEDIA_CACHE_MAX_SIZE inactive=30d use_temp_path=off;
 MEDIA_HTTP
 
@@ -164,13 +176,18 @@ MEDIA_SERVER
 
 # 40-railway-nginx.sh validated the config before we appended to it, so re-check
 # here rather than letting a bad render crash-loop the container.
-if ! nginx -t; then
-  log "ERROR: media proxy configuration failed nginx -t; disabling it and keeping the site up"
+if nginx -t; then
+  log "serving $MEDIA_PATH/ from https://$MEDIA_S3_HOST (cache $MEDIA_CACHE_PATH, max $MEDIA_CACHE_MAX_SIZE)"
+else
+  log "ERROR: media proxy configuration failed nginx -t; reverting it and leaving the site up"
   rm -f "$MEDIA_CONF"
-  # Strip the block we appended, back to the marker comment.
-  sed -i '/^# Media proxy cache (41-media-proxy\.sh)/,$d' "$HTTP_CONF"
-  nginx -t
-  exit 0
+  cp "$HTTP_BACKUP" "$HTTP_CONF" 2>/dev/null || true
+  if nginx -t >/dev/null 2>&1; then
+    log "reverted; the rest of the configuration is valid"
+  else
+    log "WARNING: the configuration is still invalid after reverting, so the fault is not the media proxy"
+  fi
 fi
 
-log "serving $MEDIA_PATH/ from https://$MEDIA_S3_HOST (cache $MEDIA_CACHE_PATH, max $MEDIA_CACHE_MAX_SIZE)"
+rm -f "$HTTP_BACKUP"
+exit 0
