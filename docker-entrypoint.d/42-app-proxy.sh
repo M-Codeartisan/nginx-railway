@@ -41,6 +41,12 @@ fi
 
 APP_READ_TIMEOUT="${APP_READ_TIMEOUT:-60s}"
 
+# Response header buffer, then body buffers, then how much may be flushed to the
+# client while the rest is still arriving. Defaults are four times nginx's own.
+APP_BUFFER_SIZE="${APP_BUFFER_SIZE:-16k}"
+APP_BUFFERS="${APP_BUFFERS:-8 16k}"
+APP_BUSY_BUFFERS_SIZE="${APP_BUSY_BUFFERS_SIZE:-32k}"
+
 case "$APP_UPSTREAM" in
   http://*|https://*) ;;
   *)
@@ -116,6 +122,14 @@ $APP_TLS
 
         proxy_read_timeout $APP_READ_TIMEOUT;
         proxy_buffering on;
+
+        # Raised from the defaults, which are sized for small responses. A
+        # framework that sets many cookies or a long Set-Cookie chain overflows
+        # the 4k header buffer and nginx answers 502 with
+        # "upstream sent too big header while reading response header".
+        proxy_buffer_size       $APP_BUFFER_SIZE;
+        proxy_buffers           $APP_BUFFERS;
+        proxy_busy_buffers_size $APP_BUSY_BUFFERS_SIZE;
 APP_BODY
 
 # Replace the try_files inside "location /" only. The static-asset block has a
