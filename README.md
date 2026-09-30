@@ -81,6 +81,15 @@ keeps serving static files.
 |---|---|---|
 | `APP_UPSTREAM` | *(unset)* | Where to send everything not matched earlier, e.g. `http://laravel.railway.internal:8080`. Enables the proxy. |
 | `APP_READ_TIMEOUT` | `60s` | Upstream read timeout. |
+| `APP_BUFFER_SIZE` | `16k` | Buffer for the response headers — four times nginx's own default. |
+| `APP_BUFFERS` | `8 16k` | Buffers for the response body: up to 128 KB held in memory per request. |
+| `APP_BUSY_BUFFERS_SIZE` | `32k` | How much may be flushed to the client while the rest is still arriving. |
+
+The buffer defaults are raised because nginx's own are sized for small responses.
+A framework that sets several cookies, or sends a long `Set-Cookie` chain,
+overflows the stock 4k header buffer and nginx answers `502` with *upstream sent
+too big header while reading response header* — which reads as the application
+being down when it answered perfectly well.
 
 ### Why not PROXY_ROUTES
 
